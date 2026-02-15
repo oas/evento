@@ -14,7 +14,7 @@ let pattern = PatternBuilder::new(1)
 	.then("login", Some("login"), Arc::new(|ev, _ctx| {
 		match ev.payload.get("user_id") {
 			Some(EventValue::Int(id)) => *id > 0,
-			_ => false, // No user_id or wrong type? No match.
+			_ => false, // no user_id or wrong type? no match.
 		}
 	}))
 	
