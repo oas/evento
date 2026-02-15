@@ -9,5 +9,25 @@ The project is currently in **active development**. While the core execution eng
 The Pattern API is designed to be readable for business experts while remaining strictly typed for developers. You define patterns by chaining transitions:
 
 ```rust
-...
+let pattern = PatternBuilder::new(1)
+    // 1. start with a successful login
+    .then("login", Some("login"), Arc::new(|ev, _ctx| {
+        matches!(ev.payload.get("user_id"), Some(EventValue::Int(id)) if *id > 0)
+    }))
+    
+    // 2. look for either a large purchase OR a large transfer
+    .either(vec![
+        StepDefinition::new().then("large_purchase", Some("purchase"), Arc::new(|ev, _| {
+            matches!(ev.payload.get("amount"), Some(EventValue::Float(a)) if *a >= 100.0)
+        })),
+        StepDefinition::new().then("large_transfer", Some("transfer"), Arc::new(|ev, _| {
+            matches!(ev.payload.get("amount"), Some(EventValue::Float(a)) if *a >= 100.0)
+        })),
+    ])
+    // (this whole 'either' block must complete within 30 seconds of the login)
+    .within(30_000)
+
+    // 3. finally, compile the pattern into a nondeterministic finite automaton (NFA) for execution
+    .compile();
+
 ```
