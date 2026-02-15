@@ -10,24 +10,33 @@ The Pattern API is designed to be readable for business experts while remaining 
 
 ```rust
 let pattern = PatternBuilder::new(1)
-    // 1. start with a successful login
-    .then("login", Some("login"), Arc::new(|ev, _ctx| {
-        matches!(ev.payload.get("user_id"), Some(EventValue::Int(id)) if *id > 0)
-    }))
-    
-    // 2. look for either a large purchase OR a large transfer
-    .either(vec![
-        StepDefinition::new().then("large_purchase", Some("purchase"), Arc::new(|ev, _| {
-            matches!(ev.payload.get("amount"), Some(EventValue::Float(a)) if *a >= 100.0)
-        })),
-        StepDefinition::new().then("large_transfer", Some("transfer"), Arc::new(|ev, _| {
-            matches!(ev.payload.get("amount"), Some(EventValue::Float(a)) if *a >= 100.0)
-        })),
-    ])
-    // (this whole 'either' block must complete within 30 seconds of the login)
-    .within(30_000)
+	// 1. start with a successful login
+	.then("login", Some("login"), Arc::new(|ev, _ctx| {
+		match ev.payload.get("user_id") {
+			Some(EventValue::Int(id)) => *id > 0,
+			_ => false, // No user_id or wrong type? No match.
+		}
+	}))
+	
+	// 2. look for either a large purchase OR a large transfer
+	.either(vec![
+		StepDefinition::new().then("large_purchase", Some("purchase"), Arc::new(|ev, _| {
+			match ev.payload.get("amount") {
+				Some(EventValue::Float(a)) => *a >= 100.0,
+				_ => false,
+			}
+		})),
+		StepDefinition::new().then("large_transfer", Some("transfer"), Arc::new(|ev, _| {
+			match ev.payload.get("amount") {
+				Some(EventValue::Float(a)) => *a >= 100.0,
+				_ => false,
+			}
+		})),
+	])
+	// (this whole 'either' block must complete within 30 seconds of the login)
+	.within(30_000)
 
-    // 3. finally, compile the pattern into a nondeterministic finite automaton (NFA) for execution
-    .compile();
-
+	// 3. finally, compile the pattern into a nondeterministic finite automaton (NFA) for execution
+	.compile();
 ```
+
